@@ -1,0 +1,50 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import yfinance as yf
+from scipy.stats import norm
+from tabulate import tabulate
+
+#iMPROVEMENT Of previus version of this code. Now Colab Friendly
+# Fetch the data from Yahoo Finance
+ticker = 'FNB'  # Replace with your desired ticker symbol
+df = yf.download(ticker, start="2020-01-01", end="2023-01-01")
+
+# Ensure 'Close' column is present
+if 'Close' not in df.columns:
+    raise ValueError("The downloaded data must contain a 'Close' column.")
+
+# Calculate returns
+df['returns'] = df['Close'].pct_change()
+
+# Drop missing values
+df = df.dropna(subset=['returns'])
+
+# Calculate mean and standard deviation of returns
+mean_return = df['returns'].mean()
+std_dev_return = df['returns'].std()
+
+# Plot the returns distribution
+plt.figure(figsize=(10, 6))
+sns.histplot(df['returns'], bins=40, kde=False, stat="density", alpha=0.5, color="blue")
+x = np.linspace(mean_return - 3*std_dev_return, mean_return + 3*std_dev_return, 100)
+plt.plot(x, norm.pdf(x, mean_return, std_dev_return), 'r', lw=2)
+plt.title('Returns Distribution and Normal Curve')
+plt.xlabel('Returns')
+plt.ylabel('Density')
+plt.grid(True)
+plt.show()
+
+# Calculate Value at Risk (VaR)
+VaR_90_1 = norm.ppf(1 - 0.9, mean_return, std_dev_return)
+VaR_95_1 = norm.ppf(1 - 0.95, mean_return, std_dev_return)
+VaR_99_1 = norm.ppf(1 - 0.99, mean_return, std_dev_return)
+
+# Output VaR values
+var_data = [
+    ['90%', VaR_90_1],
+    ['95%', VaR_95_1],
+    ['99%', VaR_99_1]
+]
+print(tabulate(var_data, headers=['Confidence Level', 'Value at Risk'], tablefmt='pretty'))
